@@ -2,10 +2,9 @@ import AppKit
 
 /// Drives the menu bar item directly with AppKit.
 ///
-/// SwiftUI's `MenuBarExtra` label ignores explicit `.frame()` sizing on its
-/// image, so its rendered icon can't be reliably resized. Managing the
-/// `NSStatusItem` ourselves gives full, predictable control over the icon's
-/// size via `NSImage.size`.
+/// Cortado caffeinates the Mac for as long as it's running: it starts
+/// `caffeinate` on launch and stops it on quit. There's no manual toggle —
+/// the menu just offers Quit.
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// The on-screen size (in points) of the menu bar icon.
@@ -33,7 +32,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        updateStatusItem()
+
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitTapped), keyEquivalent: "q"))
+        for item in menu.items {
+            item.target = self
+        }
+        statusItem.menu = menu
 
         NotificationCenter.default.addObserver(
             self,
@@ -41,49 +46,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: CaffeineManager.stateDidChangeNotification,
             object: nil
         )
+
+        updateIcon()
+
+        // Caffeinate for as long as the app is running.
+        CaffeineManager.shared.caffeinate()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        // Never leave an orphaned caffeinate process running after Cortado quits.
+        // Stop caffeinating the moment Cortado quits.
         CaffeineManager.shared.decaffeinate()
     }
 
     @objc private func caffeineStateChanged() {
-        updateStatusItem()
+        updateIcon()
     }
 
-    private func updateStatusItem() {
-        let isCaffeinated = CaffeineManager.shared.isCaffeinated
-        statusItem.button?.image = isCaffeinated ? caffeinatedImage : squareImage
-
-        let menu = NSMenu()
-
-        if isCaffeinated {
-            menu.addItem(
-                NSMenuItem(title: "Decaffeinate", action: #selector(decaffeinateTapped), keyEquivalent: "")
-            )
-        } else {
-            menu.addItem(
-                NSMenuItem(title: "Caffeinate", action: #selector(caffeinateTapped), keyEquivalent: "")
-            )
-        }
-
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitTapped), keyEquivalent: "q"))
-
-        for item in menu.items {
-            item.target = self
-        }
-
-        statusItem.menu = menu
-    }
-
-    @objc private func caffeinateTapped() {
-        CaffeineManager.shared.caffeinate()
-    }
-
-    @objc private func decaffeinateTapped() {
-        CaffeineManager.shared.decaffeinate()
+    private func updateIcon() {
+        statusItem.button?.image = CaffeineManager.shared.isCaffeinated ? caffeinatedImage : squareImage
     }
 
     @objc private func quitTapped() {
