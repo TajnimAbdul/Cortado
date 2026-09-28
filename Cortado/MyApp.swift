@@ -3,28 +3,14 @@ import SwiftUI
 @main
 struct MyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var caffeineManager = CaffeineManager.shared
 
     var body: some Scene {
-        MenuBarExtra {
-            if caffeineManager.isCaffeinated {
-                Button("Decaffeinate") {
-                    caffeineManager.decaffeinate()
-                }
-            } else {
-                Button("Caffeinate") {
-                    caffeineManager.caffeinate()
-                }
-            }
-
-            Divider()
-
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
-            }
-        } label: {
-            Image(systemName: caffeineManager.isCaffeinated ? "triangle.fill" : "square.fill")
+        // No windows — the menu bar item is built and managed directly by
+        // AppDelegate using AppKit, which gives reliable control over the
+        // icon's size (SwiftUI's MenuBarExtra ignores frame sizing on its
+        // label image).
+        Settings {
+            EmptyView()
         }
-        .menuBarExtraStyle(.menu)
     }
 }

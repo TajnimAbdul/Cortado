@@ -2,18 +2,22 @@ import Foundation
 import Combine
 
 /// Owns the `caffeinate` process and publishes the app's caffeinated state.
-///
-/// This is a plain `ObservableObject` held directly by the SwiftUI `App`
-/// (via `@StateObject`) so that published changes reliably drive the
-/// `MenuBarExtra` icon and menu — driving this from the app delegate alone
-/// is not consistently reactive.
 final class CaffeineManager: ObservableObject {
 
     static let shared = CaffeineManager()
 
+    /// Posted whenever `isCaffeinated` changes, so the AppKit-based status
+    /// item (which does not observe `@Published` directly) can refresh its
+    /// icon and menu.
+    static let stateDidChangeNotification = Notification.Name("CaffeineManager.stateDidChange")
+
     /// `true` while `/usr/bin/caffeinate` is running and keeping the
     /// display and system awake.
-    @Published private(set) var isCaffeinated = false
+    @Published private(set) var isCaffeinated = false {
+        didSet {
+            NotificationCenter.default.post(name: Self.stateDidChangeNotification, object: nil)
+        }
+    }
 
     private var caffeinateProcess: Process?
 
